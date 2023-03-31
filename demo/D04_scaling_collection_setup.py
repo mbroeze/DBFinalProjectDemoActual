@@ -1,7 +1,6 @@
 from bson import MinKey, MaxKey
 
 from base.db_logical import ShardServerReplicaSet
-from base.db_physical import MongoShardServer
 from demo.D00_init_server_setup import TOR_ROUTER, ON_REPLSET
 from demo.D01_init_collection_setup import DB_NAME, COLLECTION_NAME
 from demo.D03_scaling_server_setup import MB_REPLSET, QC_REPLSET

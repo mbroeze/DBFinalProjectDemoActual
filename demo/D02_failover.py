@@ -1,7 +1,7 @@
 import time
 
 from demo.D00_init_server_setup import TOR_ROUTER, MON_ROUTER, WIN_ROUTER, \
-    ON_REPLSET, ON_REPL_MON
+    ON_REPLSET, ON_REPL_MON, ON_REPL_WIN
 from demo.simple_data import insert_sample_data, clear_data, \
     query_from_windsor, query_from_cornwall, print_demo_title
 
@@ -83,9 +83,11 @@ insert_sample_data(detailed=True)
 query_from_windsor()
 
 print("Bringing Winnipeg router offline and Montreal router online")
-WIN_ROUTER.shutdown()
 MON_ROUTER.startup()
-while WIN_ROUTER.healthy() or not MON_ROUTER.healthy():
+while not MON_ROUTER.healthy():
+    time.sleep(2)
+WIN_ROUTER.shutdown()
+while WIN_ROUTER.healthy():
     time.sleep(2)
 print("  Winnipeg router offline and Montreal router online")
 input("Press enter to continue")
@@ -100,6 +102,8 @@ while not TOR_ROUTER.healthy() or not WIN_ROUTER.healthy():
 print("  Routers online")
 
 clear_data()
+
+time.sleep(10)
 
 # 3. Bringing down data servers
 
@@ -125,15 +129,25 @@ input("Press enter to continue")
 
 insert_sample_data()
 
-print(f"Bringing down Montreal data server")
-ON_REPL_MON.shutdown()
-while ON_REPL_MON.healthy():
-    time.sleep(1)
-print("  Brought down Montreal data server")
-
+# Note: We don't need to do this with >3 shard servers in a replica set
+print("Cycling primary data server for replication")
+print("  Bringing up primary data server")
+ON_REPLSET.pref_primary.startup()
+while not ON_REPLSET.pref_primary.healthy():
+    time.sleep(2)
 
 time.sleep(10)
 
+print("  Bringing down primary data server")
+ON_REPLSET.pref_primary.shutdown()
+while ON_REPLSET.pref_primary.healthy():
+    time.sleep(1)
+
+print(f"Bringing down Winnipeg data server")
+ON_REPL_WIN.shutdown()
+while ON_REPL_WIN.healthy():
+    time.sleep(1)
+print("  Brought down Winnipeg data server")
 
 query_from_cornwall()
 query_from_windsor()
@@ -146,11 +160,13 @@ Demo notes
     - the only instance up right now is a SECONDARY
 - we need to have a majority of instances up for writes to work
 """
-print("Bringing up Montreal data server for writes")
-ON_REPL_MON.startup()
-while not ON_REPL_MON.healthy():
+print("Bringing up Winnipeg data server for writes")
+ON_REPL_WIN.startup()
+while not ON_REPL_WIN.healthy():
     time.sleep(1)
-print("  Montreal data server is up")
+print("  Winnipeg data server is up")
 input("Press enter to continue")
+
+time.sleep(10)
 
 clear_data()
